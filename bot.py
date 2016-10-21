@@ -20,8 +20,22 @@ async def on_message(message):
         tags = msg.content
         images = await getPic(3, tags)
 
+        if (len(images) == 0):
+            await client.send_message(message.channel, "Bad tag", tts=False)
+            return
+
+        delete = []
         for image in images:
-            await client.send_file(message.channel, image, filename="x.jpg")
+            x = await client.send_file(message.channel, image, filename="x.jpg")
+            delete.append(x)
 
+        deleteNotif = "Deleting in 30 seconds"
+        n = await client.send_message(message.channel, deleteNotif, tts=False)
+        delete.append(n)
 
-client.run('MjMyMzQ3Mzg5MjY3MTQ4ODAw.CtYyYA.41yI5yzQ8zpzns-9FS8ueuoYW4k')
+        await asyncio.sleep(30)
+        for k in delete:
+            await client.delete_message(k)
+            print ("deleted")
+
+client.run('MjMyMzQ3Mzg5MjY3MTQ4ODAw.CutEGg.Tgtv8cC1sQiiFtMttFYL1PO83io')

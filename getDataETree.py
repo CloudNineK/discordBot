@@ -49,10 +49,19 @@ async def getPic(rep, tags='paizuri'):
     entries = await fetchHList(tags)
     images = []
 
-    for k in range(rep):
-        num = randint(4, len(entries))
+    # if empty return empty array
+    if (len(entries) == 0):
+        return images
+
+    # if # of entries is less than rep; rep = # of entries
+    if (len(entries) < rep):
+        rep = len(entries)
+
+    ran = range(rep)
+
+    for k in ran:
+        num = randint(0, len(ran))
         fileUrl = entries[num]["file_url"]
-        print (entries)
         entries.pop(num)  # prevent duplicate images
         images.append(await picPull(fileUrl))
 
