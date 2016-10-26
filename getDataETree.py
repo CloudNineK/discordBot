@@ -1,22 +1,20 @@
 """ Returns image object from gelbooru based on tags"""
 
-import requests
 import xml.etree.ElementTree as ET
-import urllib.request as urllib
 import io
 import aiohttp
 import asyncio
-from PIL import Image
 from random import randint
 
 
 @asyncio.coroutine
-async def fetchHList(tags):
+async def fetchHList(tags, site):
     """ returns a list of Dictionaries containing image information
         tags is a string with format: "tag1" or "tag1 + tag2"
     """
 
-    url = ('http://gelbooru.com/index.php?page=dapi&s=post&q=index' + '&tags=' +
+    url = (site + '/index.php?page=dapi&s=post&q=index&limit=99' +
+           '&tags=' +
            tags)
 
     # Request XML tree containing images based on tag
@@ -27,16 +25,18 @@ async def fetchHList(tags):
             root = ET.fromstring(await r.text())
 
             # create a list of database entries
-            entries= []  # entries is a list of dictionaries
+            entries = []  # entries is a list of dictionaries
             for ent in root.iter('posts'):
-                # add a dictionary of data for a single image to the entries list
+                # add a dictionary of data for a single image to the entries
+                # list
                 for attrib in ent:
                     entries.append(attrib.attrib)
 
             return entries
 
+
 @asyncio.coroutine
-async def getPic(rep, tags='paizuri'):
+async def getPic(rep, site, tags='paizuri'):
     """ returns a number of random image objects from a dictionary of image URLs
         entries is a list of dictionaries containing image information
         rep is the number of images to return
@@ -46,8 +46,9 @@ async def getPic(rep, tags='paizuri'):
         chance of duplicate is much higher.
     """
 
-    entries = await fetchHList(tags)
+    entries = await fetchHList(tags, site)
     images = []
+    print(tags + " " + str(len(entries)))
 
     # if empty return empty array
     if (len(entries) == 0):
@@ -59,11 +60,13 @@ async def getPic(rep, tags='paizuri'):
 
     ran = range(rep)
 
+    i = 0
     for k in ran:
-        num = randint(0, len(ran))
+        num = randint(0, (len(entries) - 1) - i)
         fileUrl = entries[num]["file_url"]
         entries.pop(num)  # prevent duplicate images
         images.append(await picPull(fileUrl))
+        i += 1
 
     return images
 
@@ -81,5 +84,5 @@ async def picPull(url):
             return imgData
 
 if __name__ == "__main__":
-    print (fetchHList())
-    print (getPic(fetchHList()))
+    print(fetchHList())
+    print(getPic(fetchHList()))
