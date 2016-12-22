@@ -58,15 +58,11 @@ async def getPic(rep, site, tags='paizuri'):
     if (len(entries) < rep):
         rep = len(entries)
 
-    ran = range(rep)
-
-    i = 0
-    for k in ran:
-        num = randint(0, (len(entries) - 1) - i)
+    for k in range(rep):
+        num = randint(0, (len(entries) - 1))
         fileUrl = entries[num]["file_url"]
         entries.pop(num)  # prevent duplicate images
         images.append(await picPull(fileUrl))
-        i += 1
 
     return images
 

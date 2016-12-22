@@ -1,8 +1,23 @@
 import discord
 import asyncio
+
+# eroSearch
 from getDataETree import getPic
 
+# MAL
+from userClass import userClassCreator
+from getDataETree import picPull
+from getDataETreeMAL import fetchAnimeList
+
+
 client = discord.Client()
+discord.opus.load_opus('/usr/lib/x86_64-linux-gnu/libopus.so.0')
+
+gelTags = []
+with open('gelTags.txt', 'r') as f:
+    for line in f:
+        gelTags.append(line.strip())
+gelSet = set(gelTags)
 
 
 @client.event
@@ -10,41 +25,141 @@ async def on_ready():
     print('Logged in as')
     print(client.user.name)
     print(client.user.id)
-    print('------')
+    print('-------------')
 
 
 @client.event
 async def on_message(message):
     if message.content.startswith('!eroSearch'):
-        site = 'http://gelbooru.com'
-        start = message.content.find(" ") + 1
-        tags = message.content[start:]
-        images = await getPic(3, site, tags)
-
-        if (len(images) == 0):
-            x = await client.send_message(message.channel,
-                                          "Bad tag",
-                                          tts=False)
-            print(tags)
-            await client.delete_message(message)
-            await client.delete_message(x)
-            return
-
         delete = []  # list of messages to delete
         delete.append(message)
 
-        for image in images:
-            x = await client.send_file(message.channel,
-                                       image,
-                                       filename="x.jpg")
-            delete.append(x)
+        start = message.content.find(" ") + 1
 
-        deleteNotif = "Deleting in 30 seconds"
-        n = await client.send_message(message.channel, deleteNotif, tts=False)
-        delete.append(n)
+        query = message.content[start:]
+        query = query.split('+')
 
-        await asyncio.sleep(30)
+        await client.send_typing(message.channel)
+
+        searching = 'Searching'
+        delete.append(await client.send_message(message.channel, searching,
+                                                tts=False))
+        delete.extend(await eroFunc(message, query))
+
+        await asyncio.sleep(15)
         for k in delete:
             await client.delete_message(k)
+
+    if message.content.startswith('!MAL'):
+        start = message.content.find(" ") + 1
+
+        user = message.content[start:]
+
+        await MAL_Info(message, user)
+
+    if message.content.startswith('!voice'):
+        if message.author.nick == 'Terrence':
+            start = message.content.find(" ") + 1
+            query = message.content[start:]
+
+            if (query == 'getOut'):
+                await audio(message, 'getOut.mp3')
+
+            if (query == 'normies'):
+                await audio(message, 'normies.mp3')
+
+            if (query == 'breathing'):
+                await audio(message, 'breathing.mp3')
+
+            if (query == 'cake'):
+                await audio(message, 'cake.mp3')
+
+
+async def eroFunc(message, tags):
+    site = 'http://gelbooru.com'
+    delete = []
+
+    tagStr = ''
+    for ktag in tags:
+        tagStr += ktag + ' + '
+        if ktag not in gelSet:
+            print(ktag + ' not found')
+            return
+
+    tagStr = tagStr[:len(tagStr) - 3]
+    print(tags)
+    images = await getPic(3, site, tagStr)
+
+    for image in images:
+        x = await client.send_file(message.channel,
+                                   image,
+                                   filename="x.jpg")
+        delete.append(x)
+
+    # put this in main function
+    deleteNotif = "Deleting in 15 seconds"
+
+    n = await client.send_message(message.channel, deleteNotif, tts=False)
+    delete.append(n)
+
+    return delete
+
+
+async def MAL_Info(message, user):
+
+    # Raw data pulled
+    userData, animeData = fetchAnimeList(user)
+    # Data is processed into mangaeable objects
+    userData = userClassCreator(userData)
+
+    nameMsg = '***' + userData.name + '***'
+    await client.send_message(message.channel, nameMsg, tts=False)
+
+    # Profile Picture
+    ###########################################################################
+    URL = ("https://myanimelist.cdn-dena.com/images/userimages/" +
+           str(userData.id) + ".jpg")
+
+    profile = await picPull(URL)
+    await client.send_file(message.channel,
+                           profile,
+                           filename=user + ".jpg")
+
+    # User Information
+    ###########################################################################
+
+    info = '```'
+
+    info += '{:<30}{:•<10}{:<5}{:<10}'.format("Currently Watching", "", "",
+                                              str(userData.watching))
+    info += "\n"
+    info += '{:<30}{:•<10}{:<5}{:<10}'.format("Completed", "", "",
+                                              str(userData.completed))
+    info += "\n"
+    info += '{:<30}{:•<10}{:<5}{:<10}'.format("Dropped", "", "",
+                                              str(userData.dropped))
+    info += "\n"
+    info += '{:<30}{:•<10}{:<5}{:<10}'.format("Plan to Watch", "", "",
+                                              str(userData.planToWatch))
+    info += "\n"
+    info += '{:<30}{:•<10}{:<5}{:<10}'.format("Total Days Spent Watching", "",
+                                              "", str(userData.daysSpent) +
+                                              " hours")
+
+    info += '```'
+
+    await client.send_message(message.channel, info, tts=False)
+
+
+async def audio(message, track):
+    voice = await client.join_voice_channel(message.author.voice.voice_channel)
+    player = voice.create_ffmpeg_player(track)
+    player.volume = 0.75
+    player.start()
+    while(player.is_playing()):
+        asyncio.sleep(1)
+    print('ya')
+    await voice.disconnect()
+
 
 client.run('MjMyMzQ3Mzg5MjY3MTQ4ODAw.CutEGg.Tgtv8cC1sQiiFtMttFYL1PO83io')
