@@ -88,7 +88,7 @@ async def on_message(message):
             start = message.content.find(" ") + 1
             query = message.content[start:]
 
-            await audio(message, os.getcwd() + '/Audio/ + query + '.mp3')
+            await audio(message, os.getcwd() + '/Audio/' + query + '.mp3')
 
 
 async def eroFunc(message, tags):
