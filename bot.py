@@ -1,18 +1,21 @@
 import discord
 import asyncio
 
-# eroSearch
+# EROSEARCH
 from getDataETree import getPic
 
-# MAL
+# MAL LOOKUP
 from userClass import userClassCreator
 from getDataETree import picPull
 from getDataETreeMAL import fetchAnimeList
 
+# AUDIO
+import os
 
 client = discord.Client()
 discord.opus.load_opus('/usr/lib/x86_64-linux-gnu/libopus.so.0')
 
+# Come back to this
 gelTags = []
 with open('gelTags.txt', 'r') as f:
     for line in f:
@@ -30,7 +33,28 @@ async def on_ready():
 
 @client.event
 async def on_message(message):
+
+    # EROSEARCH
     if message.content.startswith('!eroSearch'):
+        delete = []  # list of messages to delete
+        delete.append(message)
+
+        start = message.content.find(" ") + 1
+
+        query = message.content[start:]
+
+        await client.send_typing(message.channel)
+
+        delete.append(await client.send_message(message.channel, 'Searching',
+                                                tts=False))
+        delete.extend(await eroFunc(message, query))
+
+        await asyncio.sleep(15)
+        for k in delete:
+            await client.delete_message(k)
+
+    # EROSAFE
+    if message.content.startswith('!eroSafe'):
         delete = []  # list of messages to delete
         delete.append(message)
 
@@ -41,15 +65,15 @@ async def on_message(message):
 
         await client.send_typing(message.channel)
 
-        searching = 'Searching'
-        delete.append(await client.send_message(message.channel, searching,
+        delete.append(await client.send_message(message.channel, 'Searching',
                                                 tts=False))
-        delete.extend(await eroFunc(message, query))
+        delete.extend(await eroSafe(message, query))
 
         await asyncio.sleep(15)
         for k in delete:
             await client.delete_message(k)
 
+    # MAL LOOKUP
     if message.content.startswith('!MAL'):
         start = message.content.find(" ") + 1
 
@@ -57,25 +81,37 @@ async def on_message(message):
 
         await MAL_Info(message, user)
 
+    # AUDIO
     if message.content.startswith('!voice'):
-        if message.author.nick == 'Terrence':
+        if message.author.nick == 'Terrence':  # User specific
+
             start = message.content.find(" ") + 1
             query = message.content[start:]
 
-            if (query == 'getOut'):
-                await audio(message, 'getOut.mp3')
-
-            if (query == 'normies'):
-                await audio(message, 'normies.mp3')
-
-            if (query == 'breathing'):
-                await audio(message, 'breathing.mp3')
-
-            if (query == 'cake'):
-                await audio(message, 'cake.mp3')
+            await audio(message, os.getcwd() + query + '.mp3')
 
 
 async def eroFunc(message, tags):
+    site = 'http://gelbooru.com'
+    delete = []
+
+    images = await getPic(3, site, tags)
+
+    for image in images:
+        x = await client.send_file(message.channel,
+                                   image,
+                                   filename="x.jpg")
+        delete.append(x)
+
+    deleteNotif = "Deleting in 15 seconds"
+
+    n = await client.send_message(message.channel, deleteNotif, tts=False)
+    delete.append(n)
+
+    return delete
+
+
+async def eroSafe(message, tags):
     site = 'http://gelbooru.com'
     delete = []
 
@@ -145,7 +181,6 @@ async def MAL_Info(message, user):
     info += '{:<30}{:•<10}{:<5}{:<10}'.format("Total Days Spent Watching", "",
                                               "", str(userData.daysSpent) +
                                               " hours")
-
     info += '```'
 
     await client.send_message(message.channel, info, tts=False)
