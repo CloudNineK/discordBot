@@ -5,7 +5,7 @@ from Bot import Bot
 client = discord.Client()
 discord.opus.load_opus('/usr/lib/x86_64-linux-gnu/libopus.so.0')
 
-meido = Bot(client)
+bot = Bot(client)
 
 
 @client.event
@@ -28,19 +28,19 @@ async def on_message(message):
         await client.send_typing(message.channel)
 
         if query == 'eroSearch':
-            await meido.eroSearch(message.channel, args, 3)
+            await bot.eroSearch(message.channel, args, 3)
 
         if query == 'MALsearch':
-            await meido.malSearch(message.channel, args)
+            await bot.malSearch(message.channel, args)
 
         if query == 'inspect':
-            await meido.inspectUser(message.channel, args)
+            await bot.inspectUser(message.channel, args)
 
         if query == 'play':
-            await meido.playAudio(message.author.voice.voice_channel, args)
+            await bot.playAudio(message.author.voice.voice_channel, args)
 
         if query == 'changeVol':
-            await meido.changeVol(args)
+            await bot.changeVol(args)
 
         if query == 'pick':
             pass
