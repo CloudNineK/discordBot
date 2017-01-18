@@ -30,9 +30,7 @@ class Bot:
             self.delete.append(msg)
 
         await asyncio.sleep(15)
-        for img in self.delete:
-            await self.client.delete_message(img)
-
+        await self.client.delete_messages(self.delete)
         self.delete.clear()
 
     async def malSearch(self, channel, username):
