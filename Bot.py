@@ -13,23 +13,34 @@ class Bot:
     async def sendMessage(self, channel, message, tts=False):
         """Send a message to the channel"""
 
-        await self.client.send_message(channel, message, tts)
+        message = await self.client.send_message(channel, message, tts=tts)
+
+        return message
 
     async def sendImage(self, channel, image, filename='gelPic.jpg'):
         """Send an image message to the channel"""
 
-        await self.client.send_file(channel, image, filename=filename)
+        message = await self.client.send_file(channel, image,
+                                              filename=filename)
+        return message
 
-    async def eroSearch(self, channel, tags, n):
+    async def eroSearch(self, message, tags, n):
         """ Send n images to a discord text channel"""
+
+        self.delete.append(message)
 
         images = await getPic(n, tags)
 
         for image in images:
-            msg = await self.sendImage(channel, image)
+            msg = await self.sendImage(message.channel, image)
             self.delete.append(msg)
 
+        delete = await self.sendMessage(message.channel,
+                                        "Deleting in 15 seconds")
+        self.delete.append(delete)
+
         await asyncio.sleep(15)
+
         await self.client.delete_messages(self.delete)
         self.delete.clear()
 
