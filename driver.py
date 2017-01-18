@@ -28,7 +28,7 @@ async def on_message(message):
         await client.send_typing(message.channel)
 
         if query == 'eroSearch':
-            await bot.eroSearch(message.channel, args, 3)
+            await bot.eroSearch(message, args, 3)
 
         if query == 'MALsearch':
             await bot.malSearch(message.channel, args)
