@@ -19,7 +19,7 @@ async def on_ready():
 @client.event
 async def on_message(message):
 
-    if message.content.startswith('Meido,'):
+    if message.content.startswith('Meido, '):
 
         start = message.content.find(' ') + 1
         query = message.content[start:message.content.find(' ', start)]

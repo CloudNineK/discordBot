@@ -1,4 +1,5 @@
 import asyncio
+import os
 from imagePull import getPic, picPull
 from MAL import userClassCreator, fetchAnimeList
 
@@ -89,8 +90,9 @@ class Bot:
 
     async def playAudio(self, voiceChannel, track, vol=0.75):
         # message.author.voice.voice_channel
+        track = os.getcwd() + "/Audio/" + track + ".mp3"
         voice = await self.client.join_voice_channel(voiceChannel)
-        player = voice.create_ffmpeg_player(track)
+        player = voice.create_ffmpeg_player(track, use_avconv=True)
         player.volume = vol
         self.player = player
         player.start()
