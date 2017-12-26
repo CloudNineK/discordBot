@@ -1,35 +1,58 @@
 import requests
+import time
+import aiohttp
 import xml.etree.ElementTree as ET
+from bs4 import BeautifulSoup as bs
 
-""" This module processes information from a user's MyAnimeList account"""
+""" This module processes XML information from a user's MyAnimeList account"""
 
-class User():
-    """ Attributes"""
+# Yummy hard coded credentials for search api
+user = "TessBot"
+pw = "SupersonicRefraction!"
+
+
+# 2 classes due to MAL's request limit
+class UserAnime():
+    """ MAL User information; <myinfo>"""
 
     def __init__(self, L):
-        # some naming inconsistency in order to match xml roots
+        """ L: a list of attributes respective of the <myinfo> xml tags"""
 
-        # Implement easier way to do this
         self.id = L[0]
         self.name = L[1]
-        self.watching = L[2]
-        self.completed = L[3]
-        self.onhold = L[4]
-        self.dropped = L[5]
-        self.planToWatch = L[6]
-        self.daysSpent = L[7]
 
-        attribList = [self.id, self.name, self.watching, self.completed,
-                      self.onhold, self.dropped, self.planToWatch,
-                      self.daysSpent]
+        # Anime
+        self.aWatching = L[2]
+        self.aCompleted = L[3]
+        self.aOnhold = L[4]
+        self.aDropped = L[5]
+        self.aPlanToWatch = L[6]
+        self.aDaysSpent = L[7]
 
-        for k in range(len(attribList)):
-            attribList[k] = L[k]
 
-class Anime():
-    """ Attributes"""
+class UserManga():
+    """ MAL User information; <myinfo>"""
 
     def __init__(self, L):
+        """ L: a list of attributes respective of the <myinfo> xml tags"""
+
+        self.id = L[0]
+        self.name = L[1]
+
+        # Manga
+        self.mReading = L[2]
+        self.mCompleted = L[3]
+        self.mOnhold = L[4]
+        self.mDropped = L[5]
+        self.mPlanToRead = L[6]
+        self.mDaysSpent = L[7]
+
+
+class Anime():
+    """ MAL Anime information; <anime>"""
+
+    def __init__(self, L):
+        """ L: a list of attributes respective of the <anime> xml tags"""
 
         self.dbid = L[0]
         self.title = L[1]
@@ -50,15 +73,44 @@ class Anime():
         self.myLastUpdated = L[16]
 
 
-# This function exists for consistency with the anime class
-# While anime data is contained by a list of lists user data is contained by a
-# single list and thus is trivial to intialize
-def userClassCreator(userData):
-    """ Takes a list of raw user data and creates user objects"""
+class AnimeSearch():
+    """ MAL Anime search response information; <entry>"""
 
-    tempClass = User(userData)
+    def __init__(self, L):
+        """ L: a list of attributes respective of the <anime><entry> tags"""
+        self.dbid = L[0]
+        self.title = L[1]
+        self.english = L[2]
+        self.synonyms = L[3]
+        self.episodes = L[4]
+        self.score = L[5]
+        self.dbtype = L[6]
+        self.status = L[7]
+        self.startDate = L[8]
+        self.endDate = L[9]
+        self.synopsis = L[10]
+        self.image = L[11]
 
-    return tempClass
+
+class MangaSearch():
+    """ MAL Manga search response information; <entry>"""
+
+    def __init__(self, L):
+        """ L: a list of attributes respective of the <manga><entry> tags"""
+        self.dbid = L[0]
+        self.title = L[1]
+        self.english = L[2]
+        self.synonyms = L[3]
+        self.chapters = L[4]
+        self.volumes = L[5]
+        self.score = L[6]
+        self.dbtype = L[7]
+        self.status = L[8]
+        self.startDate = L[9]
+        self.endDate = L[10]
+        self.synopsis = L[11]
+        self.image = L[12]
+
 
 def animeClassCreator(aniData):
     """ Takes a list of raw anime data and creates Anime objects"""
@@ -71,6 +123,7 @@ def animeClassCreator(aniData):
         animeList.append(tempClass)
 
     return animeList
+
 
 def fetchAnimeList(user='cloudninek'):
     """ returns a list of anime objects for a specified user's animelist
@@ -86,12 +139,6 @@ def fetchAnimeList(user='cloudninek'):
     r = requests.get(url)
     root = ET.fromstring(r.content)
 
-    # create a list of user data
-    userData = []
-    for Data in root.iter('myinfo'):
-        for stat in Data:
-            userData.append(stat.text)
-
     # create a list of anime data
     animeData = []  # animeData is a list of lists
     for anime in root.iter('anime'):
@@ -101,4 +148,94 @@ def fetchAnimeList(user='cloudninek'):
             tempList.append(attrib.text)
         animeData.append(tempList)
 
-    return userData, animeData
+    return animeData
+
+
+def fetchAnimeData(user='cloudninek'):
+    userData = []
+
+    aUrl = ('http://myanimelist.net/malappinfo.php?u=' + user +
+            '&status=all&type=anime')
+
+    # Request anime data from MAL
+    # Convert xml formatted data to elementree object
+    r = requests.get(aUrl)
+    root = ET.fromstring(r.content)
+
+    # append anime data
+    for Data in root.iter('myinfo'):
+        for stat in Data:
+            userData.append(stat.text)
+
+    return UserAnime(userData)
+
+
+def fetchMangaData(user='cloudninek'):
+    userData = []
+
+    mUrl = ('http://myanimelist.net/malappinfo.php?u=' + user +
+            '&status=all&type=manga')
+
+    # Request manga data from MAL
+    # Convert xml formatted data to elementree object
+    r = requests.get(mUrl)
+    root = ET.fromstring(r.content)
+
+    # append manga data
+    for Data in root.iter('myinfo'):
+        for stat in Data:
+            userData.append(stat.text)
+
+    return UserManga(userData)
+
+
+async def searchAnime(name):
+    """ Returns a dictionary containing attributes for the searched anime"""
+
+    basicAuth = aiohttp.BasicAuth('CloudNineK', 'Iridescenc3')
+
+    url = "https://myanimelist.net/api/anime/search.xml?q=" + name
+    async with aiohttp.ClientSession() as session:
+        async with session.request('GET', url, auth=basicAuth) as r:
+
+            anime = {}
+            root = ET.fromstring(await r.text())
+            for item in root[0]:
+                try:
+                    # Convert html encoding
+                    anime[item.tag] = bs(item.text)
+                    # Remove break tags
+                    for e in anime[item.tag].findAll('br'):
+                        e.extract()
+                    anime[item.tag] = str(anime[item.tag])
+
+                except Exception:
+                    anime[item.tag] = ""
+
+    return anime
+
+
+async def searchManga(name):
+    """ Returns a dictionary containing attributes for the searched manga"""
+
+    basicAuth = aiohttp.BasicAuth('CloudNineK', 'Iridescenc3')
+
+    url = "https://myanimelist.net/api/manga/search.xml?q=" + name
+    async with aiohttp.ClientSession() as session:
+        async with session.request('GET', url, auth=basicAuth) as r:
+
+            manga = {}
+            root = ET.fromstring(await r.text())
+            for item in root[0]:
+                try:
+                    # Convert html encoding
+                    manga[item.tag] = bs(item.text)
+                    # Remove break tags
+                    for e in manga[item.tag].findAll('br'):
+                        e.extract()
+                    manga[item.tag] = str(manga[item.tag])
+
+                except Exception:
+                    manga[item.tag] = ""
+
+    return manga

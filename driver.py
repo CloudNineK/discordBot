@@ -1,11 +1,19 @@
+#!/usr/lib/python3.6
+
 import discord
-import asyncio
 from Bot import Bot
 
 client = discord.Client()
-discord.opus.load_opus('/usr/lib/x86_64-linux-gnu/libopus.so.0')
-
+# discord.opus.load_opus('/usr/lib/libopus.so')
 bot = Bot(client)
+
+
+# Unwrap list of args
+async def wrapper(func, args):
+    if len(args) > 0:
+        await func(*args)
+    else:
+        await func()
 
 
 @client.event
@@ -19,31 +27,34 @@ async def on_ready():
 @client.event
 async def on_message(message):
 
-    if message.content.startswith('Meido, '):
+    if message.content.startswith('!'):
 
-        start = message.content.find(' ') + 1
-        query = message.content[start:message.content.find(' ', start)]
-        args  = message.content[start + len(query) + 1:]
+        query = (message.content + ' ')[1:message.content.find(' ')]
+        args = message.content[len(query) + 1:]
+        args = args.split()
+        args.insert(0, message)
 
-        await client.send_typing(message.channel)
+        funcs = {'clean': bot.clean,
+                 'inspect': bot.inspect_user,
+                 'list': bot.list_users,
+                 'ero': bot.ero_search,
+                 'mal': bot.mal_search,
+                 'inspect': bot.inspect_user,
+                 'anime': bot.ani_search,
+                 'manga': bot.manga_search,
+                 'consolidate': bot.consolidate,
+                 'test': bot.test}
 
-        if query == 'eroSearch':
-            await bot.eroSearch(message, args, 3)
+        # Trivial to make this output error to console without stopping
+        # execution
+        """
+        try:
+            await wrapper(funcs[query], args)
+        except Exception as e:
+            print("Failure " + query + " " + str(args))
+        """
 
-        if query == 'MALsearch':
-            await bot.malSearch(message.channel, args)
-
-        if query == 'inspect':
-            await bot.inspectUser(message.channel, args)
-
-        if query == 'play':
-            await bot.playAudio(message.author.voice.voice_channel, args)
-
-        if query == 'changeVol':
-            await bot.changeVol(args)
-
-        if query == 'pick':
-            pass
+        await wrapper(funcs[query], args)
 
 
-client.run('MjMyMzQ3Mzg5MjY3MTQ4ODAw.CutEGg.Tgtv8cC1sQiiFtMttFYL1PO83io')
+client.run('Mjk5MjIyMjEyMzYyMjQwMDAx.C8axlw.RvgOLYv17_LNEjZlPl8lbLAK2g8')
