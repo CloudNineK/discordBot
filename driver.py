@@ -57,4 +57,3 @@ async def on_message(message):
         await wrapper(funcs[query], args)
 
 
-client.run('Mjk5MjIyMjEyMzYyMjQwMDAx.C8axlw.RvgOLYv17_LNEjZlPl8lbLAK2g8')

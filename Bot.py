@@ -220,9 +220,8 @@ class Bot:
         await self.send_image(channel, pic, filename=fname)
         await self.send_message(channel, manga['synopsis'])
 
-    # Sort users by: Highest Role > Alphabetical
-    # optional arg: group users by game
     async def list_users(self, message, arg="role"):
+        """ List user in the channel"""
         channel = message.channel
         server = channel.server
 
@@ -264,7 +263,7 @@ class Bot:
         if arg == 'emoji':
             emojis = server.emojis
             for emoji in emojis:
-                message += ('<:' + emoji.name + ':' + emoji.id + '> ' +
+                message += ('<a:' + emoji.name + ':' + emoji.id + '> ' +
                             ':' + emoji.name + ':\n')
 
         await self.send_message(channel, message)
@@ -280,12 +279,6 @@ class Bot:
         pass
 
     async def test(self, message):
-        channel = message.channel
-        em = discord.Embed(description='Test Description',
-                           colour=0xDEADBF)
-        em.title = 'Test title'
-        em.set_author(name='Test Author', icon_url='http://vignette2.wikia.nocookie.net/splatoon/images/1/18/Apple-icon-180x180.png/revision/latest?cb=20150808000030')
-        em.add_field(name='left', value='content', inline=True)
-        em.add_field(name='right', value='content', inline=True)
-        em.set_thumbnail(url='http://vignette2.wikia.nocookie.net/splatoon/images/1/18/Apple-icon-180x180.png/revision/latest?cb=20150808000030')
-        await self.send_embed(channel, embed=em)
+        m = '\\:pepe:'
+        await self.send_message(message.channel, m)
+        pass
