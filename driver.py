@@ -1,4 +1,4 @@
-#!/usr/lib/python3.6
+#!/usr/bin/env python3
 
 import discord
 from Bot import Bot
@@ -6,6 +6,12 @@ from Bot import Bot
 client = discord.Client()
 # discord.opus.load_opus('/usr/lib/libopus.so')
 bot = Bot(client)
+
+# open credentials
+f = open('token.txt', 'r')
+t = f.read()
+t = t.strip()
+f.close()
 
 
 # Unwrap list of args
@@ -39,7 +45,6 @@ async def on_message(message):
                  'list': bot.list_users,
                  'ero': bot.ero_search,
                  'mal': bot.mal_search,
-                 'inspect': bot.inspect_user,
                  'anime': bot.ani_search,
                  'manga': bot.manga_search,
                  'consolidate': bot.consolidate,
@@ -56,4 +61,4 @@ async def on_message(message):
 
         await wrapper(funcs[query], args)
 
-
+client.run(t)

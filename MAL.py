@@ -1,10 +1,12 @@
 import requests
-import time
 import aiohttp
 import xml.etree.ElementTree as ET
 from bs4 import BeautifulSoup as bs
 
 """ This module processes XML information from a user's MyAnimeList account"""
+
+# TODO: Probably a good idea to use dictionaries to initialize the classes
+#       instead of lists
 
 # Yummy hard coded credentials for search api
 user = "TessBot"
@@ -224,18 +226,18 @@ async def searchManga(name):
     async with aiohttp.ClientSession() as session:
         async with session.request('GET', url, auth=basicAuth) as r:
 
-            manga = {}
+            manga = []
             root = ET.fromstring(await r.text())
             for item in root[0]:
                 try:
                     # Convert html encoding
-                    manga[item.tag] = bs(item.text)
+                    txt = bs(item.text)
                     # Remove break tags
-                    for e in manga[item.tag].findAll('br'):
+                    for e in txt.findAll('br'):
                         e.extract()
-                    manga[item.tag] = str(manga[item.tag])
+                    manga.append(str(txt))
 
                 except Exception:
-                    manga[item.tag] = ""
+                    manga.append("")
 
-    return manga
+    return MangaSearch(manga)

@@ -31,7 +31,7 @@ class Bot:
                                               filename=filename)
         return message
 
-    async def clean(self, message, num):
+    async def clean(self, message, num=5):
         """ Deletes the last n messages sent by the bot"""
 
         def check(message):
@@ -61,7 +61,7 @@ class Bot:
         await self.client.delete_messages(self.delete)
         self.delete.clear()
 
-    async def mal_search(self, message, username, type):
+    async def mal_search(self, message, username):
         """ Search user's MAL profile and display stats"""
 
         channel = message.channel
@@ -79,12 +79,6 @@ class Bot:
         em = discord.Embed(title=tString, url=URL, colour=0x2E51A2)
         em.set_thumbnail(url=pURL)
 
-        # Author
-        iURL = ('https://myanimelist.cdn-dena.com/img/sp/icon/apple-touch-icon'
-                '-256.png')
-        sURL = 'https://myanimelist.net'
-        em.set_author(name='My Anime List', url=sURL, icon_url=iURL)
-
         # Fields
         em.add_field(name='Currently Watching', value=str(userData.aWatching))
         em.add_field(name='Completed', value=str(userData.aCompleted))
@@ -92,6 +86,12 @@ class Bot:
         em.add_field(name='Plan to Watch', value=str(userData.aPlanToWatch))
         em.add_field(name='Total Hours Spent Watching',
                      value=str(userData.aDaysSpent))
+
+        # Author
+        iURL = ('https://myanimelist.cdn-dena.com/img/sp/icon/apple-touch-icon'
+                '-256.png')
+        sURL = 'https://myanimelist.net'
+        em.set_author(name='My Anime List', url=sURL, icon_url=iURL)
 
         await self.send_embed(channel, em)
 
@@ -213,12 +213,23 @@ class Bot:
 
     async def manga_search(self, message, title):
         channel = message.channel
-        manga = await searchManga(title)  # Dictionary containing anime attrib
+        manga = await searchManga(title)
 
-        pic = await picPull(manga['image'])
-        fname = 'show.jpg'
-        await self.send_image(channel, pic, filename=fname)
-        await self.send_message(channel, manga['synopsis'])
+        # embed
+        url = 'https://myanimelist.net/manga/' + manga.dbid
+        em = discord.Embed(title=manga.title, url=url, colour=0x2E51A2)
+        em.set_thumbnail(url=manga.image)
+
+        # Fields
+        em.add_field(name='Synopsis', value=str(manga.synopsis))
+
+        # Author
+        iURL = ('https://myanimelist.cdn-dena.com/img/sp/icon/apple-touch-icon'
+                '-256.png')
+        sURL = 'https://myanimelist.net'
+        em.set_author(name='My Anime List', url=sURL, icon_url=iURL)
+
+        await self.send_embed(channel, em)
 
     async def list_users(self, message, arg="role"):
         """ List user in the channel"""
@@ -260,10 +271,11 @@ class Bot:
                 message += ('**' + game + '**' + ': ' + '__' + name + '__' +
                             '\n')
 
+        # TODO: convert to embed
         if arg == 'emoji':
             emojis = server.emojis
             for emoji in emojis:
-                message += ('<a:' + emoji.name + ':' + emoji.id + '> ' +
+                message += ('<:' + emoji.name + ':' + emoji.id + '> ' +
                             ':' + emoji.name + ':\n')
 
         await self.send_message(channel, message)
