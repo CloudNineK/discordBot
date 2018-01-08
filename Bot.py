@@ -1,8 +1,10 @@
-import os
 import asyncio
 import discord
+from datetime import datetime
 from imagePull import getPic, picPull
 from MAL import fetchAnimeData, searchAnime, searchManga
+
+# TODO: !age
 
 
 class Bot:
@@ -12,54 +14,46 @@ class Bot:
         self.delete = []
         self.player = None
 
-    async def send_message(self, channel, message, tts=False):
-        """Send a message to the channel"""
-
-        message = await self.client.send_message(channel, message, tts=tts)
-        return message
-
-    async def send_embed(self, channel, embed):
-        """Send a message to the channel"""
-
-        message = await self.client.send_message(channel, embed=embed)
-        return message
-
-    async def send_image(self, channel, image, filename='gelPic.jpg'):
-        """Send an image to the channel"""
-
-        message = await self.client.send_file(channel, image,
-                                              filename=filename)
-        return message
-
     async def clean(self, message, num=5):
         """ Deletes the last n messages sent by the bot"""
+        channel = message.channel
+
+        num = int(num)
+        num += 1
 
         def check(message):
-            return (message.author == self.client.user or message.content[0] ==
-                    '!')
-        channel = message.channel
-        await self.client.purge_from(channel, limit=int(num), check=check)
+            def check_exc(message):
+                try:
+                    return message.content[0] == '!'
+                except IndexError:
+                    return False
 
-    async def ero_search(self, message, tags, n=3):
+            return (message.author == self.client.user or check_exc(message))
+        await channel.purge(limit=num, check=check)
+
+    async def ero_search(self, message, tags, t=10, n=3):
         """ Send n gelbooru images to a discord text channel"""
 
         n = int(n)
+        delete = []
         channel = message.channel
-        self.delete.append(message)
 
         images = await getPic(n, tags)
 
+        files = []
         for image in images:
-            msg = await self.send_image(channel, image)
-            self.delete.append(msg)
+            # Yea...
+            files.append(discord.File(image, str(image) + '.png'))
 
-        notify = await self.send_message(channel, "Deleting in 10 seconds")
-        self.delete.append(notify)
+        pics = await channel.send(files=files)
+        notify = await channel.send("Deleting in " + str(t) + " seconds")
+        delete.append(notify)
+        delete.append(pics)
+        delete.append(message)
 
-        await asyncio.sleep(10)
+        await asyncio.sleep(int(t))
 
-        await self.client.delete_messages(self.delete)
-        self.delete.clear()
+        await channel.delete_messages(delete)
 
     async def mal_search(self, message, username):
         """ Search user's MAL profile and display stats"""
@@ -93,83 +87,44 @@ class Bot:
         sURL = 'https://myanimelist.net'
         em.set_author(name='My Anime List', url=sURL, icon_url=iURL)
 
-        await self.send_embed(channel, em)
-
-    async def play_audio(self, message, track, vol=0.75):
-
-        voiceChannel = message.author.voice.voice_channel
-
-        # convert track name to path name
-        track = os.cwd() + '/Audio/' + track + '.mp3'
-        print(track)
-        print(os.path.isfile(track))
-
-        # Join Voice Channel
-        voice = await self.client.join_voice_channel(voiceChannel)
-
-        # Initialize audio player
-        player = voice.create_ffmpeg_player(track)
-        player.volume = vol
-        self.player = player
-        player.start()
-
-        # Disconnect if player is not currently playing
-        while(player.is_playing()):
-            asyncio.sleep(1)
-        await voice.disconnect()
-
-    async def change_vol(self, message, vol):
-        try:
-            self.player.volume = vol
-        except ValueError:
-            print('No player currently active')
+        await channel.send(embed=em)
 
     async def inspect_user(self, message, user):
         channel = message.channel
 
         # Get target member from a list of members
-        members = self.client.get_all_members()
+        # TODO: discord.utils.find()
+        members = channel.guild.members
         target = None
         for member in members:
             if member.nick == user or member.name == user:
                 target = member
 
-        # Handle user not found
-        link = ''
+        # TODO: handle this with the error method
         if target is None:
-            noUsr = 'No user by that name in the channel'
-            self.delete.append(await self.send_message(channel, noUsr))
+            err = 'No user by that name in the channel'
+            delete = [await self.error(channel, err)]
             await asyncio.sleep(5)
-            for k in self.delete:
-                await self.client.delete_message(k)
+            await channel.delete(delete)
             return
 
-        # Send profile image (SLOW)
-        link = target.avatar_url
-        img = await picPull(link)
-        await self.send_image(channel, img, user + '.jpg')
-
-        # Send name and nickname(optional)
+        # Username
         if target.nick is None:
             uName = target.name
         else:
             uName = target.nick + ' (' + target.name + ')'
-        msg = '***' + uName + '***'
-        await self.send_message(channel, msg)
 
-        # Send member roles
-        roles = target.roles
-        if len(roles) > 1:
+        em = discord.Embed(title=uName, url=target.avatar_url,
+                           colour=target.color.value)
+        em.set_thumbnail(url=channel.guild.icon_url)
+        print(channel.guild.icon_url)
 
-            info = '```'
-            info += '\nRoles:'
-            roles.pop(0)
-            for role in roles:
-                info += '\n' + role.name
+        joined = datetime.now() - target.joined_at
+        em.add_field(name='Role', value=str(target.top_role))
+        em.add_field(name='Age', value=(str(joined.days) + ' days'))
+        em.set_image(url=target.avatar_url)
 
-            info += '```'
-
-            await self.send_message(channel, info)
+        await channel.send(embed=em)
 
     async def consolidate(self, message, channel_to, channel_from=None):
 
@@ -229,14 +184,17 @@ class Bot:
         sURL = 'https://myanimelist.net'
         em.set_author(name='My Anime List', url=sURL, icon_url=iURL)
 
-        await self.send_embed(channel, em)
+        await channel.send(embed=em)
 
     async def list_users(self, message, arg="role"):
         """ List user in the channel"""
-        channel = message.channel
-        server = channel.server
 
-        members = server.members
+        # TODO: embed everything
+
+        channel = message.channel
+        guild = message.guild
+
+        members = guild.members
         members = [member for member in members if str(member.status) !=
                    'offline' and member.bot is not True]
         members = sorted(members, key=lambda x: x.nick if x.nick == str else
@@ -256,6 +214,7 @@ class Bot:
                 message += '**' + name + '**' + '\n'
 
         if arg == 'game':
+            # TODO: "is not none", handle no users playing game
             members = [member for member in members if member.game is not None]
             members = sorted(members, key=lambda x: str(x.game))
 
@@ -271,23 +230,28 @@ class Bot:
                 message += ('**' + game + '**' + ': ' + '__' + name + '__' +
                             '\n')
 
-        # TODO: convert to embed
-        if arg == 'emoji':
-            emojis = server.emojis
-            for emoji in emojis:
-                message += ('<:' + emoji.name + ':' + emoji.id + '> ' +
-                            ':' + emoji.name + ':\n')
+                if message == '':
+                        message = ('No users in the server are currently'
+                                   'playing games')
 
-        await self.send_message(channel, message)
+        if arg == 'emoji':
+            emojis = guild.emojis
+            for emoji in emojis:
+                message += (str(emoji) + ' :' + emoji.name + ':\n')
+
+        await channel.send(message)
 
         pass
 
-    async def error_message(self, channel):
+    async def error(self, channel, message):
         title = 'Error'
-        description = 'Sorry, something went wrong'
+        description = message
         colour = 0xff6961
         em = discord.Embed(title=title, description=description, colour=colour)
-        self.send_embed(channel, em)
+        channel.send(embed=em)
+        pass
+
+    async def help(self, channel, message):
         pass
 
     async def test(self, message):
