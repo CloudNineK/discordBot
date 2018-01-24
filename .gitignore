@@ -97,3 +97,6 @@ ENV/
 
 # token 
 token.txt
+
+# temp / work
+splat.py

@@ -1,5 +1,6 @@
 import asyncio
 import discord
+from markov import Markov
 from datetime import datetime
 from imagePull import getPic, picPull
 from MAL import fetchAnimeData, searchAnime, searchManga
@@ -13,6 +14,7 @@ class Bot:
         self.client = client
         self.delete = []
         self.player = None
+        self.markov = Markov('discord.txt')
 
     async def clean(self, message, num=5):
         """ Deletes the last n messages sent by the bot"""
@@ -253,6 +255,10 @@ class Bot:
 
     async def help(self, channel, message):
         pass
+
+    async def markov_gen(self, message):
+        channel = message.channel
+        await channel.send(self.markov.generate())
 
     async def test(self, message):
         m = '\\:pepe:'

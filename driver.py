@@ -48,6 +48,7 @@ async def on_message(message):
                  'anime': bot.ani_search,
                  'manga': bot.manga_search,
                  'consolidate': bot.consolidate,
+                 'mk': bot.markov_gen,
                  'test': bot.test}
 
         # Trivial to make this output error to console without stopping
