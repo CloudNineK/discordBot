@@ -4,6 +4,7 @@ from markov import Markov
 from datetime import datetime
 from imagePull import getPic, picPull
 from MAL import fetchAnimeData, searchAnime, searchManga
+from random import choice
 
 # TODO: !age
 
@@ -15,6 +16,9 @@ class Bot:
         self.delete = []
         self.player = None
         self.markov = Markov('discord.txt')
+
+        with open('pics.txt', 'r') as f:
+            self.errorPics = f.read().splitlines()
 
     async def clean(self, message, num=5):
         """ Deletes the last n messages sent by the bot"""
@@ -40,7 +44,15 @@ class Bot:
         delete = []
         channel = message.channel
 
-        images = await getPic(n, tags)
+        try:
+            images = await getPic(n, tags)
+        except ValueError:
+            errorTitle = "Invalid Tags"
+            errorDescription = "Sorry, no images were found."
+            await self.error(channel, errorTitle, errorDescription)
+            await asyncio.sleep(10)
+            await message.delete()
+            return
 
         files = []
         for image in images:
@@ -48,6 +60,7 @@ class Bot:
             files.append(discord.File(image, str(image) + '.png'))
 
         pics = await channel.send(files=files)
+
         notify = await channel.send("Deleting in " + str(t) + " seconds")
         delete.append(notify)
         delete.append(pics)
@@ -245,13 +258,15 @@ class Bot:
 
         pass
 
-    async def error(self, channel, message):
-        title = 'Error'
-        description = message
+    async def error(self, channel, title, description):
         colour = 0xff6961
+
         em = discord.Embed(title=title, description=description, colour=colour)
-        channel.send(embed=em)
-        pass
+        em.set_thumbnail(url=choice(self.errorPics))
+        err = await channel.send(embed=em)
+
+        await asyncio.sleep(10)
+        await err.delete()
 
     async def help(self, channel, message):
         pass
