@@ -1,12 +1,15 @@
 import asyncio
 import discord
-from markov import Markov
+
 from datetime import datetime
 from imagePull import getPic, picPull
 from MAL import fetchAnimeData, searchAnime, searchManga
 from random import choice
 
-# TODO: !age
+# External modules
+from markov import Markov
+
+# TODO: !age in days
 
 
 class Bot:
@@ -17,8 +20,13 @@ class Bot:
         self.player = None
         self.markov = Markov('discord.txt')
 
-        with open('pics.txt', 'r') as f:
+        # List of error images
+        with open('errPics.txt', 'r') as f:
             self.errorPics = f.read().splitlines()
+
+        # List of welcome images
+        with open('welcPics.txt', 'r') as f:
+            self.welcPics = f.read().splitlines()
 
     async def clean(self, message, num=5):
         """ Deletes the last n messages sent by the bot"""
@@ -141,7 +149,7 @@ class Bot:
 
         await channel.send(embed=em)
 
-    async def consolidate(self, message, channel_to, channel_from=None):
+    async def voice_move(self, message, channel_to, channel_from=None):
 
         channel_move_to = None
         channel_move_from = None
@@ -267,6 +275,15 @@ class Bot:
 
         await asyncio.sleep(10)
         await err.delete()
+
+    async def welcome(self, channel, username):
+        colour = 0xaec6cf
+        title = "Welcome!"
+        description = "Welcome to the server " + username
+
+        em = discord.Embed(title=title, description=description, colour=colour)
+        em.set_thumbnail(url=choice(self.welcPics))
+        await channel.send(embed=em)
 
     async def help(self, channel, message):
         pass
