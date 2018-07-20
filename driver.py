@@ -2,10 +2,11 @@
 
 import asyncio
 import discord
+import db
 from discord.ext import commands
 
-from imagePull import getPic, picPull
-from MAL import fetchAnimeData, searchAnime, searchManga
+from imagePull import getPic
+from MAL import fetchAnimeData
 from random import choice
 import datetime
 
@@ -50,6 +51,7 @@ async def cTime():
 
     return fts
 
+
 async def footer_stamp():
 
     return '© ' + bot.user.name + ' | ' + await cTime()
@@ -81,18 +83,19 @@ async def clean(ctx, n=5):
 
 
 @bot.command()
-async def inspect(ctx, user):
+async def inspect(ctx, *name):
     ''' '''
 
-    members = ctx.guild.members
     target = None
+    user = ' '.join(name)
+    members = ctx.guild.members
 
     # Get member via user or nick name
     for member in members:
-        if member.nick == user or member.name == user:
+        if user.lower() in (member.display_name.lower(), member.name.lower()):
             target = member
 
-    # If target is not found return error
+    # If target is not found return error; break
     if target is None:
         errorTitle = "Invalid User"
         errorDescription = "Sorry, no user was found by that name"
@@ -101,12 +104,12 @@ async def inspect(ctx, user):
         await ctx.message.delete()
         return
 
-    # If target has a nickname
-    if target.nick is not None:
+    # Display nick + user name if found
+    if target.nick is None:
+        uName = target.name
+    else:
         uName = (target.nick + " (" + target.name + "#" + target.discriminator
                  + ")")
-    else:
-        uName = target.name
 
     # Setup embed
     em = discord.Embed(title=uName, url=target.avatar_url,
@@ -114,7 +117,7 @@ async def inspect(ctx, user):
 
     # Discord Join Date Field
     em.add_field(name='Discord Join Date',
-                 value=target.created_at.strftime('%A %b, %y'),
+                 value=target.created_at.strftime('%B %d, %Y'),
                  inline=False)
 
     # Highest Role
@@ -124,6 +127,28 @@ async def inspect(ctx, user):
 
     em.set_thumbnail(url=target.avatar_url)
     em.set_footer(text=await footer_stamp())
+
+    # Game Roles
+    roles = ctx.guild.roles
+    roles.sort()
+
+    # Get indices of game role separators
+    dexes = []
+    for k in range(len(roles)):
+        if roles[k].name == '-----------':
+            dexes.append(k)
+
+    games = ''
+    if len(dexes) is 2:
+        for k in range(dexes[0] + 1, dexes[1]):
+            games += roles[k].name + '\n'
+
+    if games == '':
+        games = 'None'
+
+    em.add_field(name='Games',
+                 value=games,
+                 inline=False)
 
     await ctx.send(embed=em)
 
@@ -198,9 +223,42 @@ async def mal(ctx, uName):
 
     await ctx.send(embed=em)
 
+
 @bot.command()
 async def echo(ctx, arg):
     await ctx.send(arg)
 
+
+@bot.command()
+async def whose(ctx, arg):
+    pass
+
+
+@bot.command()
+async def irl(ctx, mode, *args):
+    users = await db.tableGet('Members')
+
+    # Setup embed
+    em = discord.Embed(title='Users')
+
+    for user in users:
+        em.add_field(name=user,
+                     value=users[user],
+                     inline=False)
+
+    await ctx.send(embed=em)
+
+
+@bot.command()
+async def test(ctx):
+    roles = ctx.guild.roles
+    roles.sort()
+    dexes = []
+    for k in range(len(roles)):
+        print(roles[k])
+        if roles[k].name == '-----------':
+            dexes.append(k)
+
+    print(dexes)
 
 bot.run(t)

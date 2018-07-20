@@ -100,3 +100,6 @@ token.txt
 
 # temp / work
 splat.py
+
+# databases
+*db
