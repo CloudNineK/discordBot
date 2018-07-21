@@ -121,7 +121,7 @@ async def inspect(ctx, *name):
                  inline=False)
 
     # Highest Role
-    em.add_field(name='Role',
+    em.add_field(name='Highest Role',
                  value=target.top_role.name,
                  inline=False)
 
@@ -138,15 +138,21 @@ async def inspect(ctx, *name):
         if roles[k].name == '-----------':
             dexes.append(k)
 
+    if len(dexes) is not 2:
+        # TODO
+        raise Exception
+
+    gameRoles = set(roles[dexes[0] + 1: dexes[1]])
+    memberGames = gameRoles.intersection(target.roles)
+
     games = ''
-    if len(dexes) is 2:
-        for k in range(dexes[0] + 1, dexes[1]):
-            games += roles[k].name + '\n'
+    for gameRole in memberGames:
+        games += '__***' + gameRole.name + '***__' + '\n'
 
     if games == '':
         games = 'None'
 
-    em.add_field(name='Games',
+    em.add_field(name='Mentionable Games',
                  value=games,
                  inline=False)
 
