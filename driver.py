@@ -116,8 +116,8 @@ async def inspect(ctx, *name):
                        colour=target.color.value)
 
     # Discord Join Date Field
-    em.add_field(name='Discord Join Date',
-                 value=target.created_at.strftime('%B %d, %Y'),
+    em.add_field(name='Server Join Date',
+                 value=target.joined_at.strftime('%B %d, %Y'),
                  inline=False)
 
     # Highest Role
